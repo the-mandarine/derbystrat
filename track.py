@@ -7,7 +7,7 @@ from math import pi, cos, sin
 # Pivot line interior is 0
 # All sizes are from the infield
 
-S=10
+S=15
 X_MAX = 0
 OUTLINE = "black"
 LINES = "magenta"
@@ -75,13 +75,6 @@ def _track_straights_clean(draw):
     draw.line((top_in_left, bottom_in_left), BACK)
     draw.line((top_in_right, bottom_in_right), BACK)
 
-    # Pivot line
-    draw.line((top_out_left, top_in_left), LINES)
-    # Jammer line
-    jam_line = ((top_out_left[0]+(30*S), top_out_left[1]),
-                (top_in_left[0]+(30*S), top_in_left[1]))
-    draw.line(jam_line, LINES)
-
 def get_approx(x, x_beg, x_end, max_beg, max_end):
     deg = (x - x_beg) / (x_end - x_beg)
 
@@ -112,6 +105,9 @@ def get_xy(x_int, pos=0, shift=0):
         print "Bottom line"
         lim_down = end_first_curve
         lim_up = end_first_line
+        ref_x = (108/2)-17.5
+        ref_y = (75/2)
+        dim_shift = 1
         curve = False
     elif end_first_line <= x_int < end_second_curve:
         # Second curve TODO
@@ -126,6 +122,9 @@ def get_xy(x_int, pos=0, shift=0):
         print "Top line"
         lim_down = end_second_curve
         lim_up = end_second_line
+        ref_x = (108/2)+17.5
+        ref_y = (75/2)
+        dim_shift = -1
         curve = False
     else:
         # First curve
@@ -133,26 +132,54 @@ def get_xy(x_int, pos=0, shift=0):
 
     prop = (x_int - lim_down) / (lim_up - lim_down)
     ref_len_min = 12.5
-    ref_len_max = 12.5 + (((max_width - min_width) * prop) + min_width)
-    #ref_len_max = 12.5 + 13
-    ref_len = ((ref_len_max - ref_len_min) * pos) + ref_len_min
-    print prop, pos, ref_len
 
     if curve:
+        ref_len_max = 12.5 + (((max_width - min_width) * prop) + min_width)
+        ref_len = ((ref_len_max - ref_len_min) * pos) + ref_len_min
         angle = (prop * -2 * pi)/2 + angle_shift
         # Point defined by the arc of angle
         # of the circle of center (ref_x, ref_y) and radius ref_len
         pos_x = ref_len * cos(angle) + ref_x
         pos_y = ref_len * sin(angle) + ref_y
     else:
-        pass
+        ref_len_max = 12.5 + (((max_width - min_width) * (1-prop)) + min_width)
+        ref_len = ((ref_len_max - ref_len_min) * pos * dim_shift) + ref_len_min * dim_shift
+        pos_x = ref_x + (prop * 35 * dim_shift)
+        pos_y = ref_y + ref_len
     return pos_x, pos_y
 
-def _draw_player(draw, x, y, size=20, color="yellow", outline="black"):
-    draw.ellipse((((x*S)-(size/2)),
-                  ((y*S)-(size/2)),
-                  ((x*S)+(size/2)),
-                  ((y*S)+(size/2))),
+def _track_lines(draw):
+    pivot_in_x, pivot_in_y = get_xy(0, 0, shift=0)
+    pivot_out_x, pivot_out_y = get_xy(0, 1, shift=0)
+
+    draw.line(((pivot_in_x * S,
+                pivot_in_y * S),
+               (pivot_out_x * S,
+                pivot_out_y * S)), LINES)
+
+    jammer_in_x, jammer_in_y = get_xy(0, 0, shift=-30)
+    jammer_out_x, jammer_out_y = get_xy(0, 1, shift=-30)
+
+    draw.line(((jammer_in_x * S,
+                jammer_in_y * S),
+               (jammer_out_x * S,
+                jammer_out_y * S)), LINES)
+
+
+def _track_marks(draw):
+    for i in range(1, 12):
+        mark_in_x, mark_in_y = get_xy(i * 10, 0.4, shift=0)
+        mark_out_x, mark_out_y = get_xy(i * 10, 0.6, shift=0)
+        draw.line(((mark_in_x * S,
+                    mark_in_y * S),
+                   (mark_out_x * S,
+                    mark_out_y * S)), LINES, width=3)
+
+def _draw_player(draw, x, y, size=3, color="yellow", outline="black"):
+    draw.ellipse((((x*S)-(size*S/2)),
+                  ((y*S)-(size*S/2)),
+                  ((x*S)+(size*S/2)),
+                  ((y*S)+(size*S/2))),
                   fill=color,
                   outline=outline)
 
@@ -160,23 +187,35 @@ def draw_track(draw):
     """Cf. Appendix A"""
     _track_curves(draw)
     _track_straights_clean(draw)
-
-
+    _track_lines(draw)
+    _track_marks(draw)
 
 def main():
     im = Image.new('RGBA', (108*S, 75*S), BACK)
     draw = ImageDraw.Draw(im)
     draw_track(draw)
 
-    x, y = get_xy(100, 0, shift=0)
+    # Jammers
+    x, y = get_xy(0, 0.8, shift=30)
+    _draw_player(draw, x, y, color="grey")
+    x, y = get_xy(7.5, 0.4, shift=30)
     _draw_player(draw, x, y)
-#    x, y = get_xy(10, 1, shift=0)
-#    _draw_player(draw, x, y)
-#    x, y = get_xy(20, 0, shift=0)
-#    _draw_player(draw, x, y)
 
-    print x, y
+    x, y = get_xy(2, 0.85, shift=30)
     _draw_player(draw, x, y)
+    x, y = get_xy(2, 0.65, shift=30)
+    _draw_player(draw, x, y)
+    x, y = get_xy(3.5, 0.75, shift=30)
+    _draw_player(draw, x, y)
+
+    x, y = get_xy(10, 0.25, shift=30)
+    _draw_player(draw, x, y, color="grey")
+    x, y = get_xy(10, 0.45, shift=30)
+    _draw_player(draw, x, y, color="grey")
+    x, y = get_xy(13, 0.25, shift=30)
+    _draw_player(draw, x, y, color="grey")
+    x, y = get_xy(13, 0.45, shift=30)
+    _draw_player(draw, x, y, color="grey")
 
     im.show()
 
