@@ -89,24 +89,20 @@ class Track(object):
         top_out_right = self.get_xy((2 * self.curve_length) + self.line_length,
                                       4.5, -self.shift)
 
-        top_straight = (top_out_left,
-                        top_out_right,
-                        top_in_right,
-                        top_in_left)
-        bottom_straight = (bottom_in_left,
-                           bottom_in_right,
-                           bottom_out_right,
+        top_straight = (top_out_left, top_out_right, top_in_right, top_in_left)
+        bottom_straight = (bottom_in_left, bottom_in_right, bottom_out_right,
                            bottom_out_left)
 
         # Using polygons in order to color the track directly
-        img.polygon(self.real_dim(top_straight), FRONT, OUTLINE)
-        img.polygon(self.real_dim(bottom_straight), FRONT, OUTLINE)
+        img.polygon(self.real_dim(top_straight), FRONT)
+        img.polygon(self.real_dim(bottom_straight), FRONT)
 
-        # Let's erase black lines by putting colored lines on top
-        img.line(self.real_dim((top_out_left, top_in_left)), FRONT)
-        img.line(self.real_dim((top_out_right, top_in_right)), FRONT)
-        img.line(self.real_dim((bottom_in_left, bottom_out_left)), FRONT)
-        img.line(self.real_dim((bottom_in_right, bottom_out_right)), FRONT)
+        # Let's add black lines by putting colored lines on top
+        img.line(self.real_dim((top_out_left, top_out_right)), OUTLINE)
+        img.line(self.real_dim((top_in_left, top_in_right)), OUTLINE)
+        img.line(self.real_dim((bottom_in_left, bottom_in_right)), OUTLINE)
+        img.line(self.real_dim((bottom_out_left, bottom_out_right)), OUTLINE)
+        # Erase black ligns due to ellipses
         img.line(self.real_dim((top_in_left, bottom_in_left)), BACK)
         img.line(self.real_dim((top_in_right, bottom_in_right)), BACK)
 
