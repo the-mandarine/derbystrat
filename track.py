@@ -5,8 +5,8 @@ from math import pi, cos, sin, sqrt
 from collections import Iterable
 
 # Sizes are in feet
-# Pivot line interior is 0
-# All sizes are from the infield
+# Pivot line is 0
+# All sizes are from the middle of the track
 
 X_MAX = 0
 OUTLINE = "black"
@@ -217,19 +217,3 @@ class Track(object):
                           ((y*self.scale)+(size*self.scale/2))),
                           fill=color,
                           outline=outline)
-
-def main():
-    track = Track()
-    track.lines()
-
-    for i in range(10):
-        track.skater(i*5+3, pos = 1, color="red")
-        track.skater(i*5+3, pos = 2, color="green")
-        track.skater(i*10+3, pos = 3, color="yellow")
-        track.skater(i*10+3, pos = 4, color="blue")
-
-    track.show()
-    track.save("/tmp/track.png")
-
-if __name__ == '__main__':
-    main()
