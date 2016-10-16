@@ -5,10 +5,10 @@ def main():
     track = Track(shift=-30)
     track.lines()
 
-    track.skater(3, 1)
-    track.skater(1.2, 1.6)
-    track.skater(1.2, 2.3)
-    track.skater(3, 2.9)
+    track.skater(3.6, 1.1)
+    track.skater(1.5, 1.6)
+    track.skater(1.5, 2.3)
+    track.skater(3.6, 2.8)
 
     track.skater(10, 2.5, color="grey")
     track.skater(10, 3.5, color="grey")
