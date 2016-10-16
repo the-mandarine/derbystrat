@@ -30,6 +30,8 @@ class Track(object):
         self.small_breadth = 13
         self.large_breadth = 15
         self.shift = shift
+        self.curve_length = pi * 19.1
+        self.line_length = sqrt(35*35 + 1)
 
     def draw(self, img):
         self.img = img
@@ -74,24 +76,18 @@ class Track(object):
 
     def _draw_straights(self):
         img = self.img
-        top_out_left = (((self.len/2)-self.mark_dist),
-                        ((self.wid/2)-self.int_radius-self.small_breadth))
-        top_out_right = (((self.len/2)+self.mark_dist),
-                         ((self.wid/2)-self.int_radius-self.large_breadth))
-        top_in_left = ((self.len/2-self.mark_dist),
-                       (self.wid/2-self.int_radius))
-        top_in_right = (((self.len/2)+self.mark_dist),
-                        ((self.wid/2)-self.int_radius))
-
-        bottom_in_left = (((self.len/2)-self.mark_dist),
-                          ((self.wid/2)+self.int_radius))
-        bottom_in_right = (((self.len/2)+self.mark_dist),
-                           ((self.wid/2)+self.int_radius))
-        bottom_out_left = ((self.len/2-self.mark_dist),
-                           (self.wid/2+self.int_radius+self.large_breadth))
-        bottom_out_right = (((self.len/2)+self.mark_dist),
-                            ((self.wid/2)+self.int_radius+self.small_breadth))
-
+        top_in_left = self.get_xy(0, 0.5, -self.shift)
+        top_out_left = self.get_xy(0, 4.5, -self.shift)
+        bottom_in_left = self.get_xy(self.curve_length, 0.5, -self.shift)
+        bottom_out_left = self.get_xy(self.curve_length, 4.5, -self.shift)
+        bottom_in_right = self.get_xy(self.curve_length + self.line_length,
+                                      0.5, -self.shift)
+        bottom_out_right = self.get_xy(self.curve_length + self.line_length,
+                                      4.5, -self.shift)
+        top_in_right = self.get_xy((2 * self.curve_length) + self.line_length,
+                                      0.5, -self.shift)
+        top_out_right = self.get_xy((2 * self.curve_length) + self.line_length,
+                                      4.5, -self.shift)
 
         top_straight = (top_out_left,
                         top_out_right,
@@ -102,6 +98,7 @@ class Track(object):
                            bottom_out_right,
                            bottom_out_left)
 
+        # Using polygons in order to color the track directly
         img.polygon(self.real_dim(top_straight), FRONT, OUTLINE)
         img.polygon(self.real_dim(bottom_straight), FRONT, OUTLINE)
 
@@ -138,14 +135,12 @@ class Track(object):
            jammer line, us a `shift` of -30)"""
         pos_x = 0
         pos_y = 0
-        curve_length = pi * 19.1
-        line_length = sqrt(35*35 + 1)
         # linear approximation
-        end_first_curve = curve_length
+        end_first_curve = self.curve_length
         # pythagore on trapezoid
-        end_first_line = end_first_curve + line_length
-        end_second_curve = end_first_line + curve_length
-        end_second_line = end_second_curve + line_length
+        end_first_line = end_first_curve + self.line_length
+        end_second_curve = end_first_line + self.curve_length
+        end_second_line = end_second_curve + self.line_length
 
         end_of_track = end_second_line
         x += (self.shift + shift)
@@ -159,11 +154,7 @@ class Track(object):
             posval_beg = width_beg / 4
             width_end = 15
             posval_end = width_end / 4
-            ref_x_beg = (108/2)-17.5
-            ref_x_end = (108/2)-17.5
-            ref_y_beg = (75/2)
-            ref_y_end = (75/2)
-            #ref_y_end = (75/2) + 1
+            ref_x_beg = ref_x_end = (108/2)-17.5
             angle_shift = -(pi/2)
             curve = True
         elif end_first_curve <= x < end_first_line:
@@ -176,23 +167,17 @@ class Track(object):
             posval_end = width_end / 4
             ref_x_beg = (108/2)-17.5
             ref_x_end = (108/2)+17.5
-            ref_y_beg = (75/2)
-            ref_y_end = (75/2)
             dim_shift = 1
             curve = False
         elif end_first_line <= x < end_second_curve:
-            # Second curve TODO
+            # Second curve
             lim_down = end_first_line
             lim_up = end_second_curve
             width_beg = 13
             posval_beg = width_beg / 4
             width_end = 15
             posval_end = width_end / 4
-            ref_x_beg = (108/2)+17.5
-            ref_x_end = (108/2)+17.5
-            ref_y_beg = (75/2)
-            ref_y_end = (75/2)
-            #ref_y_end = (75/2) - 1
+            ref_x_beg = ref_x_end = (108/2)+17.5
             angle_shift = (pi/2)
             curve = True
         elif end_second_curve <= x < end_second_line:
@@ -205,26 +190,24 @@ class Track(object):
             posval_end = width_end / 4
             ref_x_beg = (108/2)+17.5
             ref_x_end = (108/2)-17.5
-            ref_y_beg = (75/2)
-            ref_y_end = (75/2)
             dim_shift = -1
             curve = False
 
         prop = (x - lim_down) / (lim_up - lim_down)
         posval = ((posval_end - posval_beg) * prop) + posval_beg
         ref_x = ((ref_x_end - ref_x_beg) * prop) + ref_x_beg
-        ref_y = ((ref_y_end - ref_y_beg) * prop) + ref_y_beg
-        #ref_len = 12.5 - (posval / 2) + (pos * posval)
+        ref_y = 75/2
+        ref_len = 12.5 - (posval / 2) + (pos * posval)
 
         if curve:
-            ref_len = 12.5 - (posval / 2) + (pos * posval)
             angle = (prop * -2 * pi)/2 + angle_shift
             # Point defined by the arc of angle
             # of the circle of center (ref_x, ref_y) and radius ref_len
             pos_x = ref_len * cos(angle) + ref_x
             pos_y = ref_len * sin(angle) + ref_y
         else:
-            ref_len = 12.5 - (posval / 2) + (pos * posval)
+            # Point defined to be vertically at ref_len distance of the
+            # point (ref_x, ref_y).
             pos_x = ref_x
             pos_y = ref_y + (ref_len * dim_shift)
         return pos_x, pos_y
