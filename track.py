@@ -32,12 +32,13 @@ class Track(object):
         self.shift = shift
         self.curve_length = pi * 19.1
         self.line_length = sqrt(35*35 + 1)
+        self.lanes = 5
+        self.im = Image.new('RGBA', (self.len*self.scale, self.wid*self.scale),
+                            BACK)
+        self.img = ImageDraw.Draw(self.im)
 
-    def draw(self, img):
-        self.img = img
-        self._draw_curves()
-        self._draw_straights()
-        self._draw_marks()
+    def show(self):
+        self.im.show()
 
     def real_dim(self, dim):
         if isinstance(dim, Iterable):
@@ -77,17 +78,18 @@ class Track(object):
     def _draw_straights(self):
         img = self.img
         top_in_left = self.get_xy(0, 0.5, -self.shift)
-        top_out_left = self.get_xy(0, 4.5, -self.shift)
+        top_out_left = self.get_xy(0, self.lanes+0.5, -self.shift)
         bottom_in_left = self.get_xy(self.curve_length, 0.5, -self.shift)
-        bottom_out_left = self.get_xy(self.curve_length, 4.5, -self.shift)
+        bottom_out_left = self.get_xy(self.curve_length, self.lanes+0.5,
+                                      -self.shift)
         bottom_in_right = self.get_xy(self.curve_length + self.line_length,
                                       0.5, -self.shift)
         bottom_out_right = self.get_xy(self.curve_length + self.line_length,
-                                      4.5, -self.shift)
+                                      self.lanes+0.5, -self.shift)
         top_in_right = self.get_xy((2 * self.curve_length) + self.line_length,
                                       0.5, -self.shift)
         top_out_right = self.get_xy((2 * self.curve_length) + self.line_length,
-                                      4.5, -self.shift)
+                                      self.lanes+0.5, -self.shift)
 
         top_straight = (top_out_left, top_out_right, top_in_right, top_in_left)
         bottom_straight = (bottom_in_left, bottom_in_right, bottom_out_right,
@@ -117,11 +119,13 @@ class Track(object):
                 img.line(self.real_dim((int_mark, ext_mark)), OUTLINE)
 
         jam_line_int = self.get_xy(0, pos = 0.5, shift = (0 - self.shift))
-        jam_line_ext = self.get_xy(0, pos = 4.5, shift = (0 - self.shift))
+        jam_line_ext = self.get_xy(0, pos = self.lanes+0.5,
+                                   shift = (0 - self.shift))
         img.line(self.real_dim((jam_line_int, jam_line_ext)), OUTLINE)
 
         piv_line_int = self.get_xy(-30, pos = 0.5, shift = (0 - self.shift))
-        piv_line_ext = self.get_xy(-30, pos = 4.5, shift = (0 - self.shift))
+        piv_line_ext = self.get_xy(-30, pos = self.lanes+0.5,
+                                   shift = (0 - self.shift))
         img.line(self.real_dim((piv_line_int, piv_line_ext)), OUTLINE)
 
     def get_xy(self, x, pos=2.5, shift=0):
@@ -131,6 +135,7 @@ class Track(object):
            jammer line, us a `shift` of -30)"""
         pos_x = 0
         pos_y = 0
+        ref_y = self.wid/2
         # linear approximation
         end_first_curve = self.curve_length
         # pythagore on trapezoid
@@ -146,53 +151,40 @@ class Track(object):
             # First curve
             lim_down = 0
             lim_up = end_first_curve
-            width_beg = 13
-            posval_beg = width_beg / 4
-            width_end = 15
-            posval_end = width_end / 4
-            ref_x_beg = ref_x_end = (108/2)-17.5
+            ref_x_beg = ref_x_end = (self.len/2)-self.mark_dist
             angle_shift = -(pi/2)
             curve = True
         elif end_first_curve <= x < end_first_line:
             # First line
             lim_down = end_first_curve
             lim_up = end_first_line
-            width_beg = 15
-            posval_beg = width_beg / 4
-            width_end = 13
-            posval_end = width_end / 4
-            ref_x_beg = (108/2)-17.5
-            ref_x_end = (108/2)+17.5
+            ref_x_beg = (self.len/2)-self.mark_dist
+            ref_x_end = (self.len/2)+self.mark_dist
             dim_shift = 1
             curve = False
         elif end_first_line <= x < end_second_curve:
             # Second curve
             lim_down = end_first_line
             lim_up = end_second_curve
-            width_beg = 13
-            posval_beg = width_beg / 4
-            width_end = 15
-            posval_end = width_end / 4
-            ref_x_beg = ref_x_end = (108/2)+17.5
+            ref_x_beg = ref_x_end = (self.len/2)+self.mark_dist
             angle_shift = (pi/2)
             curve = True
         elif end_second_curve <= x < end_second_line:
             # Second line
             lim_down = end_second_curve
             lim_up = end_second_line
-            width_beg = 15
-            posval_beg = width_beg / 4
-            width_end = 13
-            posval_end = width_end / 4
-            ref_x_beg = (108/2)+17.5
-            ref_x_end = (108/2)-17.5
+            ref_x_beg = (self.len/2)+self.mark_dist
+            ref_x_end = (self.len/2)-self.mark_dist
             dim_shift = -1
             curve = False
 
+        posval_beg = self.small_breadth / self.lanes
+        posval_end = self.large_breadth / self.lanes
         prop = (x - lim_down) / (lim_up - lim_down)
+        if not curve:
+            posval_beg, posval_end = posval_end, posval_beg
         posval = ((posval_end - posval_beg) * prop) + posval_beg
         ref_x = ((ref_x_end - ref_x_beg) * prop) + ref_x_beg
-        ref_y = 75/2
         ref_len = 12.5 - (posval / 2) + (pos * posval)
 
         if curve:
@@ -208,7 +200,12 @@ class Track(object):
             pos_y = ref_y + (ref_len * dim_shift)
         return pos_x, pos_y
 
-    def player(self, adv, pos = 2.5, size=2, color="yellow", outline="black"):
+    def lines(self):
+        self._draw_curves()
+        self._draw_straights()
+        self._draw_marks()
+
+    def skater(self, adv, pos = 2.5, size=2, color="yellow", outline="black"):
         x, y = self.get_xy(adv, pos)
         self.img.ellipse((((x*self.scale)-(size*self.scale/2)),
                           ((y*self.scale)-(size*self.scale/2)),
@@ -218,22 +215,19 @@ class Track(object):
                           outline=outline)
 
 def main():
-    im = Image.new('RGBA', (108*10, 75*10), BACK)
-    draw = ImageDraw.Draw(im)
-    track = Track(shift = 20)
-    track.draw(draw)
+    track = Track(shift = 0)
+    track.lines()
 
     # Jammers
     #p = Player(0, 0)
     for i in range(40):
-        track.player(i*5+3, pos = 1, color="red")
-        track.player(i*5+3, pos = 2, color="green")
-        track.player(i*5+3, pos = 3, color="yellow")
-        track.player(i*5+3, pos = 4, color="blue")
+        track.skater(i*5+3, pos = 1, color="red")
+        track.skater(i*5+3, pos = 2, color="green")
+        track.skater(i*5+3, pos = 3, color="yellow")
+        track.skater(i*5+3, pos = 4, color="blue")
 
 
-
-    im.show()
+    track.show()
 
 if __name__ == '__main__':
     main()
