@@ -8,7 +8,6 @@ from collections import Iterable
 # Pivot line interior is 0
 # All sizes are from the infield
 
-SCALE = 10
 X_MAX = 0
 OUTLINE = "black"
 LINES = "magenta"
@@ -19,8 +18,8 @@ def get_approx(x, x_beg, x_end, max_beg, max_end):
     deg = (x - x_beg) / (x_end - x_beg)
 
 class Track(object):
-    def __init__(self, shift = 0):
-        self.scale = SCALE
+    def __init__(self, shift = 0, lanes = 4, scale = 10):
+        self.scale = scale
         self.len = 108
         self.wid = 75
         self.mark_dist = 17.5
@@ -32,13 +31,16 @@ class Track(object):
         self.shift = shift
         self.curve_length = pi * 19.1
         self.line_length = sqrt(35*35 + 1)
-        self.lanes = 5
+        self.lanes = lanes
         self.im = Image.new('RGBA', (self.len*self.scale, self.wid*self.scale),
                             BACK)
         self.img = ImageDraw.Draw(self.im)
 
     def show(self):
         self.im.show()
+
+    def save(self, filename):
+        self.im.save(filename)
 
     def real_dim(self, dim):
         if isinstance(dim, Iterable):
@@ -113,9 +115,10 @@ class Track(object):
 
         for mark in range(20):
             adv = mark * 10
-            int_mark = self.get_xy(adv, pos = 2.2)
-            ext_mark = self.get_xy(adv, pos = 2.8)
-            if not mark == 14:
+            int_mark = self.get_xy(adv, self.lanes*0.55, -self.shift)
+            ext_mark = self.get_xy(adv, self.lanes*0.70, -self.shift)
+            # TODO find a better solution than this
+            if not mark == 16:
                 img.line(self.real_dim((int_mark, ext_mark)), OUTLINE)
 
         jam_line_int = self.get_xy(0, pos = 0.5, shift = (0 - self.shift))
@@ -215,19 +218,17 @@ class Track(object):
                           outline=outline)
 
 def main():
-    track = Track(shift = 0)
+    track = Track()
     track.lines()
 
-    # Jammers
-    #p = Player(0, 0)
-    for i in range(40):
+    for i in range(10):
         track.skater(i*5+3, pos = 1, color="red")
         track.skater(i*5+3, pos = 2, color="green")
         track.skater(i*5+3, pos = 3, color="yellow")
         track.skater(i*5+3, pos = 4, color="blue")
 
-
     track.show()
+    track.save("/tmp/track.png")
 
 if __name__ == '__main__':
     main()
