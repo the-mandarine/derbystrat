@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 from __future__ import division
 from PIL import Image, ImageDraw
-from math import pi, cos, sin
+from math import pi, cos, sin, sqrt
 from collections import Iterable
 
 # Sizes are in feet
 # Pivot line interior is 0
 # All sizes are from the infield
 
-S=15
+SCALE = 10
 X_MAX = 0
 OUTLINE = "black"
 LINES = "magenta"
@@ -19,8 +19,8 @@ def get_approx(x, x_beg, x_end, max_beg, max_end):
     deg = (x - x_beg) / (x_end - x_beg)
 
 class Track(object):
-    def __init__(self):
-        self.scale = 10
+    def __init__(self, shift = 0):
+        self.scale = SCALE
         self.len = 108
         self.wid = 75
         self.mark_dist = 17.5
@@ -29,11 +29,13 @@ class Track(object):
         self.int_ext_shift = 1
         self.small_breadth = 13
         self.large_breadth = 15
+        self.shift = shift
 
     def draw(self, img):
         self.img = img
         self._draw_curves()
         self._draw_straights()
+        self._draw_marks()
 
     def real_dim(self, dim):
         if isinstance(dim, Iterable):
@@ -111,95 +113,146 @@ class Track(object):
         img.line(self.real_dim((top_in_left, bottom_in_left)), BACK)
         img.line(self.real_dim((top_in_right, bottom_in_right)), BACK)
 
-    def get_xy(x, pos=0.5, shift=0):
+    def _draw_marks(self):
+        img = self.img
+
+        for mark in range(20):
+            adv = mark * 10
+            int_mark = self.get_xy(adv, pos = 2.2)
+            ext_mark = self.get_xy(adv, pos = 2.8)
+            if not mark == 14:
+                img.line(self.real_dim((int_mark, ext_mark)), OUTLINE)
+
+        jam_line_int = self.get_xy(0, pos = 0.5, shift = (0 - self.shift))
+        jam_line_ext = self.get_xy(0, pos = 4.5, shift = (0 - self.shift))
+        img.line(self.real_dim((jam_line_int, jam_line_ext)), OUTLINE)
+
+        piv_line_int = self.get_xy(-30, pos = 0.5, shift = (0 - self.shift))
+        piv_line_ext = self.get_xy(-30, pos = 4.5, shift = (0 - self.shift))
+        img.line(self.real_dim((piv_line_int, piv_line_ext)), OUTLINE)
+
+    def get_xy(self, x, pos=2.5, shift=0):
         """`x` is the middle distance from the start
-           `pos` is position on the track. 0.0 is inside. 1.0 is outside
+           `pos` is position on the track. 0.5 is inside. 4.5 is outside
            `shift` is the shift position (if you want the track to start from the
            jammer line, us a `shift` of -30)"""
         pos_x = 0
         pos_y = 0
-        end_first_curve = pi * 12.5
-        end_first_line = end_first_curve + 35
-        end_second_curve = end_first_line + pi * 12.5
-        end_second_line = end_second_curve + 35
+        curve_length = pi * 19.1
+        line_length = sqrt(35*35 + 1)
+        # linear approximation
+        end_first_curve = curve_length
+        # pythagore on trapezoid
+        end_first_line = end_first_curve + line_length
+        end_second_curve = end_first_line + curve_length
+        end_second_line = end_second_curve + line_length
 
-        end_of_track = 0
-        x += shift
+        end_of_track = end_second_line
+        x += (self.shift + shift)
         x %= end_of_track
 
-        lim_down = 0
-        lim_up = end_first_curve
-        min_width = 13
-        max_width = 15
-        ref_x = (108/2)-17.5
-        ref_y = (75/2)
-        angle_shift = -(pi/2)
-        curve = True
-        if end_first_curve <= x_int < end_first_line:
-            # First line TODO
-            print "Bottom line"
+        if 0 <= x < end_first_curve:
+            # First curve
+            lim_down = 0
+            lim_up = end_first_curve
+            width_beg = 13
+            posval_beg = width_beg / 4
+            width_end = 15
+            posval_end = width_end / 4
+            ref_x_beg = (108/2)-17.5
+            ref_x_end = (108/2)-17.5
+            ref_y_beg = (75/2)
+            ref_y_end = (75/2)
+            #ref_y_end = (75/2) + 1
+            angle_shift = -(pi/2)
+            curve = True
+        elif end_first_curve <= x < end_first_line:
+            # First line
             lim_down = end_first_curve
             lim_up = end_first_line
-            ref_x = (108/2)-17.5
-            ref_y = (75/2)
+            width_beg = 15
+            posval_beg = width_beg / 4
+            width_end = 13
+            posval_end = width_end / 4
+            ref_x_beg = (108/2)-17.5
+            ref_x_end = (108/2)+17.5
+            ref_y_beg = (75/2)
+            ref_y_end = (75/2)
             dim_shift = 1
             curve = False
-        elif end_first_line <= x_int < end_second_curve:
+        elif end_first_line <= x < end_second_curve:
             # Second curve TODO
-            print "Right curve"
             lim_down = end_first_line
             lim_up = end_second_curve
-            ref_x = (108/2)+17.5
-            angle_shift = pi/2
+            width_beg = 13
+            posval_beg = width_beg / 4
+            width_end = 15
+            posval_end = width_end / 4
+            ref_x_beg = (108/2)+17.5
+            ref_x_end = (108/2)+17.5
+            ref_y_beg = (75/2)
+            ref_y_end = (75/2)
+            #ref_y_end = (75/2) - 1
+            angle_shift = (pi/2)
             curve = True
-        elif end_second_curve <= x_int < end_second_line:
-            # Second line TODO
-            print "Top line"
+        elif end_second_curve <= x < end_second_line:
+            # Second line
             lim_down = end_second_curve
             lim_up = end_second_line
-            ref_x = (108/2)+17.5
-            ref_y = (75/2)
+            width_beg = 15
+            posval_beg = width_beg / 4
+            width_end = 13
+            posval_end = width_end / 4
+            ref_x_beg = (108/2)+17.5
+            ref_x_end = (108/2)-17.5
+            ref_y_beg = (75/2)
+            ref_y_end = (75/2)
             dim_shift = -1
             curve = False
-        else:
-            # First curve
-            print "Left curve"
 
-        prop = (x_int - lim_down) / (lim_up - lim_down)
-        ref_len_min = 12.5
+        prop = (x - lim_down) / (lim_up - lim_down)
+        posval = ((posval_end - posval_beg) * prop) + posval_beg
+        ref_x = ((ref_x_end - ref_x_beg) * prop) + ref_x_beg
+        ref_y = ((ref_y_end - ref_y_beg) * prop) + ref_y_beg
+        #ref_len = 12.5 - (posval / 2) + (pos * posval)
 
         if curve:
-            ref_len_max = 12.5 + (((max_width - min_width) * prop) + min_width)
-            ref_len = ((ref_len_max - ref_len_min) * pos) + ref_len_min
+            ref_len = 12.5 - (posval / 2) + (pos * posval)
             angle = (prop * -2 * pi)/2 + angle_shift
             # Point defined by the arc of angle
             # of the circle of center (ref_x, ref_y) and radius ref_len
             pos_x = ref_len * cos(angle) + ref_x
             pos_y = ref_len * sin(angle) + ref_y
         else:
-            ref_len_max = 12.5 + (((max_width - min_width) * (1-prop)) + min_width)
-            ref_len = ((ref_len_max - ref_len_min) * pos * dim_shift) + ref_len_min * dim_shift
-            pos_x = ref_x + (prop * 35 * dim_shift)
-            pos_y = ref_y + ref_len
+            ref_len = 12.5 - (posval / 2) + (pos * posval)
+            pos_x = ref_x
+            pos_y = ref_y + (ref_len * dim_shift)
         return pos_x, pos_y
 
-#def _draw_player(draw, x, y, size=3, color="yellow", outline="black"):
-#    draw.ellipse((((x*S)-(size*S/2)),
-#                  ((y*S)-(size*S/2)),
-#                  ((x*S)+(size*S/2)),
-#                  ((y*S)+(size*S/2))),
-#                  fill=color,
-#                  outline=outline)
+    def player(self, adv, pos = 2.5, size=2, color="yellow", outline="black"):
+        x, y = self.get_xy(adv, pos)
+        self.img.ellipse((((x*self.scale)-(size*self.scale/2)),
+                          ((y*self.scale)-(size*self.scale/2)),
+                          ((x*self.scale)+(size*self.scale/2)),
+                          ((y*self.scale)+(size*self.scale/2))),
+                          fill=color,
+                          outline=outline)
 
 def main():
     im = Image.new('RGBA', (108*10, 75*10), BACK)
     draw = ImageDraw.Draw(im)
-    track = Track()
+    track = Track(shift = 20)
     track.draw(draw)
 
     # Jammers
-#    x, y = get_xy(0, 0, shift=0)
-#    _draw_player(draw, x, y, color="grey")
+    #p = Player(0, 0)
+    for i in range(40):
+        track.player(i*5+3, pos = 1, color="red")
+        track.player(i*5+3, pos = 2, color="green")
+        track.player(i*5+3, pos = 3, color="yellow")
+        track.player(i*5+3, pos = 4, color="blue")
+
+
 
     im.show()
 
