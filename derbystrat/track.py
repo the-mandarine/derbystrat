@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from __future__ import division
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 from math import pi, cos, sin, sqrt
 from collections import Iterable
 
@@ -209,7 +209,7 @@ class Track(object):
         self._draw_straights()
         self._draw_marks()
 
-    def skater(self, adv, pos = 2.5, number=None, jammer = False, pivot=False,
+    def skater(self, adv, pos = 2.5, number="", jammer = False, pivot=False,
                size=None, color="yellow", line="black"):
         if size is None:
             size = self.large_breadth / 6
@@ -220,3 +220,8 @@ class Track(object):
                           ((y*self.scale)+(size*self.scale/2))),
                           fill=color,
                           outline=line)
+        if number:
+            font = ImageFont.truetype("Arial", 24)
+            self.img.text((((x*self.scale)-(size*self.scale/3.7)),
+                           ((y*self.scale)-(size*self.scale/2))),
+                          bytes(number)[0], line, font=font)
