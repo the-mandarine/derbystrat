@@ -209,11 +209,14 @@ class Track(object):
         self._draw_straights()
         self._draw_marks()
 
-    def skater(self, adv, pos = 2.5, size=2, color="yellow", outline="black"):
+    def skater(self, adv, pos = 2.5, number=None, jammer = False, pivot=False,
+               size=None, color="yellow", line="black"):
+        if size is None:
+            size = self.large_breadth / 6
         x, y = self.get_xy(adv, pos)
         self.img.ellipse((((x*self.scale)-(size*self.scale/2)),
                           ((y*self.scale)-(size*self.scale/2)),
                           ((x*self.scale)+(size*self.scale/2)),
                           ((y*self.scale)+(size*self.scale/2))),
                           fill=color,
-                          outline=outline)
+                          outline=line)
