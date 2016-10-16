@@ -20,7 +20,7 @@ def main():
     track.skater(-3, 1.5, color="grey", jammer = True)
 
     track.show()
-    track.save("/tmp/track.png")
+    track.save("/tmp/jam_start.png")
 
 if __name__ == '__main__':
     main()

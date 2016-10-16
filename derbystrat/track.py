@@ -18,8 +18,9 @@ def get_approx(x, x_beg, x_end, max_beg, max_end):
     deg = (x - x_beg) / (x_end - x_beg)
 
 class Track(object):
-    def __init__(self, shift = 0, lanes = 4, scale = 10):
+    def __init__(self, shift = 0, lanes = 4, scale = 30, show_scale = 3):
         self.scale = scale
+        self.show_scale = show_scale
         self.len = 108
         self.wid = 75
         self.mark_dist = 17.5
@@ -37,10 +38,13 @@ class Track(object):
         self.img = ImageDraw.Draw(self.im)
 
     def show(self):
+        self.im.resize((int(self.wid * self.scale / self.show_scale),
+                        int(self.len * self.scale / self.show_scale)),
+                       Image.LANCZOS)
         self.im.show()
 
     def save(self, filename):
-        self.im.save(filename)
+        self.im.save(filename, quality=100)
 
     def real_dim(self, dim):
         if isinstance(dim, Iterable):
@@ -113,12 +117,12 @@ class Track(object):
     def _draw_marks(self):
         img = self.img
 
-        for mark in range(20):
+        for mark in range(19):
             adv = mark * 10
             int_mark = self.get_xy(adv, self.lanes*0.55, -self.shift)
             ext_mark = self.get_xy(adv, self.lanes*0.70, -self.shift)
             # TODO find a better solution than this
-            if not mark == 16:
+            if not mark in ( 16,):
                 img.line(self.real_dim((int_mark, ext_mark)), OUTLINE)
 
         jam_line_int = self.get_xy(0, pos = 0.5, shift = (0 - self.shift))
@@ -221,7 +225,7 @@ class Track(object):
                           fill=color,
                           outline=line)
         if number:
-            font = ImageFont.truetype("Arial", 24)
+            font = ImageFont.truetype("Arial", 20*self.show_scale)
             self.img.text((((x*self.scale)-(size*self.scale/3.7)),
                            ((y*self.scale)-(size*self.scale/2))),
                           bytes(number)[0], line, font=font)
