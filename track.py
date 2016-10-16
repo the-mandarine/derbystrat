@@ -154,7 +154,7 @@ class Track(object):
             # First curve
             lim_down = 0
             lim_up = end_first_curve
-            ref_x_beg = ref_x_end = (self.len/2)-self.mark_dist
+            ref_x = (self.len/2)-self.mark_dist
             angle_shift = -(pi/2)
             curve = True
         elif end_first_curve <= x < end_first_line:
@@ -169,7 +169,7 @@ class Track(object):
             # Second curve
             lim_down = end_first_line
             lim_up = end_second_curve
-            ref_x_beg = ref_x_end = (self.len/2)+self.mark_dist
+            ref_x = (self.len/2)+self.mark_dist
             angle_shift = (pi/2)
             curve = True
         elif end_second_curve <= x < end_second_line:
@@ -186,8 +186,9 @@ class Track(object):
         prop = (x - lim_down) / (lim_up - lim_down)
         if not curve:
             posval_beg, posval_end = posval_end, posval_beg
+            ref_x = ((ref_x_end - ref_x_beg) * prop) + ref_x_beg
+
         posval = ((posval_end - posval_beg) * prop) + posval_beg
-        ref_x = ((ref_x_end - ref_x_beg) * prop) + ref_x_beg
         ref_len = 12.5 - (posval / 2) + (pos * posval)
 
         if curve:
@@ -224,8 +225,8 @@ def main():
     for i in range(10):
         track.skater(i*5+3, pos = 1, color="red")
         track.skater(i*5+3, pos = 2, color="green")
-        track.skater(i*5+3, pos = 3, color="yellow")
-        track.skater(i*5+3, pos = 4, color="blue")
+        track.skater(i*10+3, pos = 3, color="yellow")
+        track.skater(i*10+3, pos = 4, color="blue")
 
     track.show()
     track.save("/tmp/track.png")
